@@ -7,6 +7,8 @@
     "start": "node dist/server.js",
     "start:dev": "LOCAL=true nodemon server.ts",
     "start:devh": "nodemon src/server.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "postinstall": "tsc"
   },
   "author": "your name here",
