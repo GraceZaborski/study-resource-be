@@ -32,7 +32,7 @@ CREATE TABLE study_list (
   id SERIAL PRIMARY KEY NOT NULL,
   user_id int NOT NULL,
   resource_id int NOT NULL,
-  to_study boolean NOT NULL,
+  to_study boolean NOT NULL DEFAULT FALSE,
       FOREIGN KEY(user_id) 
 	  REFERENCES users(id),
       FOREIGN KEY(resource_id) 
@@ -55,9 +55,29 @@ CREATE TABLE comments (
   author_id int NOT NULL,
   comment_text text,
   date_added BIGINT NOT NULL DEFAULT date_part('epoch', now()),
-  tag_name VARCHAR(255),
   FOREIGN KEY(author_id) 
   REFERENCES users(id),
   FOREIGN KEY(resource_id) 
   REFERENCES resources(id)
   );
+
+-- dummy data
+INSERT INTO users VALUES 
+(DEFAULT, 'Barack Obama', true);
+
+INSERT INTO resources VALUES 
+(DEFAULT, 1, 'My first resource', 'A description of my resource', 'Un-bee-liveable',
+ 'www.google.com',DEFAULT, 0);
+ 
+INSERT INTO tags VALUES 
+(DEFAULT, 'Javascript');
+
+INSERT INTO study_list VALUES 
+(DEFAULT, 1, 1,false);
+
+INSERT INTO resource_tags VALUES 
+(1,1);
+
+INSERT INTO comments VALUES 
+(DEFAULT,1,1, 'My first comment', DEFAULT);
+
