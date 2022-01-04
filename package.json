@@ -7,7 +7,7 @@
     "start": "node dist/server.js",
     "start:dev": "LOCAL=true nodemon server.ts",
     "start:devh": "nodemon src/server.ts",
-    "test": "jest",
+    "test": "jest src/server.test.ts",
     "test:watch": "jest --watch",
     "postinstall": "tsc"
   },
@@ -19,7 +19,8 @@
     "express": "^4.17.1",
     "jest": "^27.4.5",
     "pg": "^8.5.1",
-    "supertest": "^6.1.6"
+    "supertest": "^6.1.6",
+    "ts-jest": "^27.1.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.9",
