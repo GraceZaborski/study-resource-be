@@ -55,7 +55,6 @@ CREATE TABLE comments (
   author_id int NOT NULL,
   comment_text text,
   date_added BIGINT NOT NULL DEFAULT date_part('epoch', now()),
-  tag_name VARCHAR(255),
   FOREIGN KEY(author_id) 
   REFERENCES users(id),
   FOREIGN KEY(resource_id) 
