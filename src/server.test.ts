@@ -4,9 +4,9 @@ import app, { client, server } from "./server";
 describe("GET /resources", () => {
   test("retrieves a list of all resources", async () => {
     const response = await supertest(app).get("/resources");
+    console.log(response);
     expect(response.status).toEqual(200);
-    expect(response.body.data[0].length).toEqual(9);
-    expect(response.body.message).toMatch("Retrieved resources");
+    expect(response.body.message).toContain("bee");
   });
   //   test("retrieves specific number of snippets", async () => {
   //     const response = await supertest(app).get("/snippets?limit=4");

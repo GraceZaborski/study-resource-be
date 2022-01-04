@@ -28,7 +28,12 @@ client.connect();
 
 app.get("/resources", async (req, res) => {
   const dbres = await client.query("SELECT * FROM resources");
-  res.json(dbres.rows);
+  console.log(Object.keys(dbres.rows[0]).length);
+  res.status(200).json({
+    status: "success",
+    message: "Retrieved bee-sources",
+    data: dbres.rows,
+  });
 });
 
 //Start the server on the given port
