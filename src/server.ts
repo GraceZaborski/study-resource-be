@@ -56,6 +56,18 @@ app.get("/tags", async (req, res) => {
   });
 });
 
+app.get<{ id: number }>("/tags/:id", async (req, res) => {
+  const { id } = req.params;
+  const dbres = await client.query("SELECT * FROM tags WHERE tag_id = $1", [
+    id,
+  ]);
+  res.status(200).json({
+    status: "success",
+    message: "Retrieved one tag",
+    data: dbres.rows,
+  });
+});
+
 //Start the server on the given port
 const port = process.env.PORT;
 if (!port) {
