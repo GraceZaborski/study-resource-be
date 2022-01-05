@@ -19,5 +19,5 @@ jobs:
         run: yarn lint
       - name: Check types compile
         run: yarn typecheck
-      - name: Check tests pass
-        run: yarn test
+      # - name: Check tests pass
+      #   run: yarn test
