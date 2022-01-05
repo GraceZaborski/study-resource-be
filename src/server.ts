@@ -47,6 +47,15 @@ app.get<{ id: number }>("/resources/:id", async (req, res) => {
   });
 });
 
+app.get("/tags", async (req, res) => {
+  const dbres = await client.query("SELECT * FROM tags");
+  res.status(200).json({
+    status: "success",
+    message: "Retrieved all tags",
+    data: dbres.rows,
+  });
+});
+
 //Start the server on the given port
 const port = process.env.PORT;
 if (!port) {
