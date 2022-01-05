@@ -68,6 +68,19 @@ app.get<{ id: number }>("/tags/:id", async (req, res) => {
   });
 });
 
+app.get<{ id: number }>("/resources/:id/tags", async (req, res) => {
+  const { id } = req.params;
+  const dbres = await client.query(
+    "SELECT * FROM tags INNER JOIN resource_tags ON tags.tag_id = resource_tags.tag_id WHERE resource_tags.resource_id = $1",
+    [id]
+  );
+  res.status(200).json({
+    status: "success",
+    message: "Retrieved all tags for a single resource",
+    data: dbres.rows,
+  });
+});
+
 //Start the server on the given port
 const port = process.env.PORT;
 if (!port) {
