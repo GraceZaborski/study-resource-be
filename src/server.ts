@@ -26,7 +26,6 @@ app.use(cors()); //add CORS support to each following route handler
 export const client = new Client(dbConfig);
 client.connect();
 
-
 //get all resources
 app.get("/resources", async (req, res) => {
   const dbres = await client.query("SELECT * FROM resources");
@@ -52,7 +51,7 @@ app.get<{ id: number }>("/resources/:id", async (req, res) => {
 
 //get all tags
 app.get("/tags", async (req, res) => {
-  //do we need just tag name? 
+  //do we need just tag name?
   const dbres = await client.query("SELECT * FROM tags");
   res.status(200).json({
     status: "success",
@@ -88,19 +87,24 @@ app.get<{ id: number }>("/resources/:id/tags", async (req, res) => {
   });
 });
 
-//add a new tag when it doesn't already exist 
+//add a new tag when it doesn't already exist
 app.post("/tags", async (req, res) => {
-  const { tag } = req.body
-  const tagExists = await client.query("SELECT * FROM tags WHERE tag_name = $1", [tag])
+  const { tag } = req.body;
+  const tagExists = await client.query(
+    "SELECT * FROM tags WHERE tag_name = $1",
+    [tag]
+  );
   if (tagExists.rowCount === 0) {
-    const dbres = await client.query("INSERT INTO tags (tag_name) VALUES ($1) RETURNING *", [tag])
+    const dbres = await client.query(
+      "INSERT INTO tags (tag_name) VALUES ($1) RETURNING *",
+      [tag]
+    );
     res.status(200).json({
       status: "success",
       message: "Added a new tag",
       data: dbres.rows,
     });
-  }
-  else {
+  } else {
     res.status(200).json({
       status: "success",
       message: "Tag already exists",
@@ -122,7 +126,6 @@ app.get<{ id: number }>("/resources/:id/comments", async (req, res) => {
     data: dbres.rows,
   });
 });
-
 
 //Start the server on the given port
 const port = process.env.PORT;
