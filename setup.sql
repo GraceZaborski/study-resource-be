@@ -81,3 +81,24 @@ INSERT INTO resource_tags VALUES
 INSERT INTO comments VALUES 
 (DEFAULT,1,1, 'My first comment', DEFAULT);
 
+-- second set of dummy data
+
+INSERT INTO users VALUES 
+(DEFAULT, 'Katy Perry', false);
+
+INSERT INTO resources VALUES 
+(DEFAULT, 2, 'My second resource', 'A description of my resource', 'May-bee',
+ 'www.google.com',DEFAULT, 0);
+ 
+INSERT INTO tags (tag_id, tag_name) VALUES 
+(DEFAULT, 'Hooks'), (DEFAULT, 'Testing');
+
+INSERT INTO study_list VALUES 
+(DEFAULT, 2, 1, false);
+
+INSERT INTO resource_tags (tag_id, resource_id) VALUES 
+(2, 2), (3, 2);
+
+INSERT INTO comments VALUES 
+(DEFAULT,2,2, 'My first comment by Katy', DEFAULT);
+
