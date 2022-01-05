@@ -109,6 +109,20 @@ app.post("/tags", async (req, res) => {
   }
 });
 
+//get the comments to an associated resource
+app.get<{ id: number }>("/resources/:id/comments", async (req, res) => {
+  const { id } = req.params;
+  const dbres = await client.query(
+    "SELECT * FROM resources INNER JOIN comments ON resources.id = comments.resource_id WHERE resources.id = $1",
+    [id]
+  );
+  res.status(200).json({
+    status: "success",
+    message: "Retrieved all comments for a single resource",
+    data: dbres.rows,
+  });
+});
+
 
 //Start the server on the given port
 const port = process.env.PORT;
