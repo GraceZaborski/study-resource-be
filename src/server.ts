@@ -35,6 +35,16 @@ app.get("/resources", async (req, res) => {
   });
 });
 
+app.get<{id: number}>("/resources/:id", async (req, res) => {
+  const {id} = req.params;
+  const dbres = await client.query("SELECT * FROM resources WHERE id = $1", [id]);
+  res.status(200).json({
+    status: "success",
+    message: "Retrieved one bee-source",
+    data: dbres.rows,
+  });
+})
+
 //Start the server on the given port
 const port = process.env.PORT;
 if (!port) {

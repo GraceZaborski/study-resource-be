@@ -7,6 +7,21 @@ describe("GET /resources", () => {
     expect(response.status).toEqual(200);
     expect(response.body.message).toContain("bee");
   });
+});
+
+describe("GET /resources/:id", () => {
+  test("retrieves a single resource with the id specified in the request", async () => {
+    const response = await supertest(app).get("/resources/1")
+    expect(response.status).toEqual(200);
+    expect(response.body.data.length).toEqual(1);
+    // have a look at this and try to make it universal
+    // expect(response.body.data[0].id).toEqual(1)
+  })
+})
+
+
+
+
   //   test("retrieves specific number of snippets", async () => {
   //     const response = await supertest(app).get("/snippets?limit=4");
   //     expect(response.body.data.length).toEqual(4);
@@ -29,7 +44,7 @@ describe("GET /resources", () => {
   //     expect(response.status).toEqual(400);
   //     expect(response.body.message).toMatch("Bad request");
   //   });
-});
+
 
 // describe("GET /snippets/1", () => {
 //   test("retrieves one snippets from the snippets table", async () => {
