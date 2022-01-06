@@ -49,12 +49,10 @@ export interface Resource {
   url: string;
   date_added: string;
   //unsure of type here
-  likes: number
-  column: string
-  data: string | number
-
+  likes: number;
+  column: string;
+  data: string | number;
 }
-
 
 //get all resources
 app.get("/resources", async (req, res) => {
@@ -240,7 +238,7 @@ app.put<{ id: number }>("/resources/:id/likes", async (req, res) => {
 
 //add a new resource
 app.post<{}, {}, Resource>("/add_resource", async (req, res) => {
-  //should date_added be default? how does date work in SQL? Can we use CURRENTDATE as default type? 
+  //should date_added be default? how does date work in SQL? Can we use CURRENTDATE as default type?
   //change liked to default 0
   const { author_id, title, description, recommended, url, likes } = req.body;
   const dbres = await client.query(
@@ -259,7 +257,10 @@ app.post<{}, {}, Resource>("/add_resource", async (req, res) => {
 app.delete<{}, {}, StudyList>("/study_list/delete", async (req, res) => {
   //endpoint naming conventions
   const { user_id, resource_id } = req.body;
-  const resourceExists = await client.query("SELECT * FROM study_list WHERE user_id = $1 and resource_id = $2", [user_id, resource_id])
+  const resourceExists = await client.query(
+    "SELECT * FROM study_list WHERE user_id = $1 and resource_id = $2",
+    [user_id, resource_id]
+  );
   if (resourceExists.rowCount !== 0) {
     const dbres = await client.query(
       "DELETE FROM study_list WHERE user_id = $1 and resource_id = $2 RETURNING *",
@@ -277,14 +278,16 @@ app.delete<{}, {}, StudyList>("/study_list/delete", async (req, res) => {
       message: "There was no resource to delete",
     });
   }
-
 });
 
 //add a resource to the study list of a specific user
 app.delete<{ id: number }>("/resources/delete/:id", async (req, res) => {
   //endpoint naming conventions
   const { id } = req.params;
-  const resourceExists = await client.query("SELECT * FROM resources WHERE id= $1", [id])
+  const resourceExists = await client.query(
+    "SELECT * FROM resources WHERE id= $1",
+    [id]
+  );
   if (resourceExists.rowCount !== 0) {
     const dbres = await client.query(
       "DELETE FROM resources WHERE id = $1 RETURNING *",
@@ -302,7 +305,6 @@ app.delete<{ id: number }>("/resources/delete/:id", async (req, res) => {
       message: "There was no resource to delete",
     });
   }
-
 });
 
 //update the to_study status of a specific resource in a specific user's study list
@@ -319,7 +321,6 @@ app.put<{}, {}, Resource>("/resources/update", async (req, res) => {
     data: dbres.rows,
   });
 });
-
 
 //Start the server on the given port
 const port = process.env.PORT;
