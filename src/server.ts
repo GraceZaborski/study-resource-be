@@ -26,6 +26,15 @@ app.use(cors()); //add CORS support to each following route handler
 export const client = new Client(dbConfig);
 client.connect();
 
+// interfaces
+export interface Comments {
+  resource_id: number,
+  author_id: number,
+  comment_text: string,
+  //unsure of type here
+  date_added?: string
+}
+
 //get all resources
 app.get("/resources", async (req, res) => {
   const dbres = await client.query("SELECT * FROM resources");
@@ -123,6 +132,39 @@ app.get<{ id: number }>("/resources/:id/comments", async (req, res) => {
   res.status(200).json({
     status: "success",
     message: "Retrieved all comments for a single resource",
+    data: dbres.rows,
+  });
+});
+
+
+//add a new comment associated with a resource
+app.post<{}, {}, Comments>("/comments", async (req, res) => {
+  //will date remain default? 
+  const { resource_id, author_id, comment_text } = req.body;
+  const dbres = await client.query(
+    "INSERT INTO comments (resource_id, author_id, comment_text) VALUES ($1, $2, $3) RETURNING *",
+    [resource_id, author_id, comment_text]
+  );
+  res.status(200).json({
+    status: "success",
+    message: "Added a new comment",
+    data: dbres.rows,
+  });
+});
+
+//get the study list resources for an associated user
+app.get<{ user_id: number }>("/study_list/:user_id", async (req, res) => {
+  const { user_id } = req.params;
+  const dbres = await client.query(
+    "SELECT * FROM users\
+    JOIN study_list ON users.id = study_list.user_id\
+    JOIN resources ON resources.id = study_list.resource_id\
+    WHERE users.id = $1",
+    [user_id]
+  );
+  res.status(200).json({
+    status: "success",
+    message: "Retrieved all study list resources for a user",
     data: dbres.rows,
   });
 });
