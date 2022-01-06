@@ -34,6 +34,11 @@ export interface Comments {
   //unsure of type here
   date_added?: string;
 }
+export interface StudyList {
+  resource_id: number;
+  user_id: number;
+  to_study: boolean;
+}
 
 //get all resources
 app.get("/resources", async (req, res) => {
@@ -164,6 +169,40 @@ app.get<{ user_id: number }>("/study_list/:user_id", async (req, res) => {
   res.status(200).json({
     status: "success",
     message: "Retrieved all study list resources for a user",
+    data: dbres.rows,
+  });
+});
+
+//add a resource to the study list of a specific user
+app.post<{}, {}, StudyList>("/study_list", async (req, res) => {
+  //when do we use req.body and when to use req.params?
+  //need to alter the front-end so that you can't add a specific resource to a study list more than once
+  const { user_id, resource_id, to_study } = req.body;
+  const dbres = await client.query(
+    "INSERT INTO study_list (user_id, resource_id, to_study) VALUES ($1, $2, $3) RETURNING *",
+    [user_id, resource_id, to_study]
+    //how come the to_study default is set to false in the study_list table?
+  );
+  res.status(200).json({
+    status: "success",
+    message: "Added a resource to the study list of a specific user",
+    data: dbres.rows,
+  });
+});
+
+//update the to_study status of a specific resource in a specific user's study list
+app.post<{}, {}, StudyList>("/study_list/update", async (req, res) => {
+  //when do we use req.body and when to use req.params
+  const { user_id, resource_id, to_study } = req.body;
+  const dbres = await client.query(
+    "UPDATE study_list SET to_study = $1 WHERE user_id = $2 and resource_id = $3 RETURNING *",
+    [to_study, user_id, resource_id]
+    //how come the to_study default is set to false in the study_list table?
+  );
+  res.status(200).json({
+    status: "success",
+    message:
+      "Updated the to_study status of a specific resource in a specific user's study list",
     data: dbres.rows,
   });
 });
