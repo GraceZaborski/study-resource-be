@@ -40,6 +40,22 @@ export interface StudyList {
   to_study: boolean;
 }
 
+export interface Resource {
+  id: number;
+  author_id: number;
+  title: string;
+  description: string;
+  recommended: string;
+  url: string;
+  date_added: string;
+  //unsure of type here
+  likes: number
+  column: string
+  data: string | number
+
+}
+
+
 //get all resources
 app.get("/resources", async (req, res) => {
   const dbres = await client.query("SELECT * FROM resources");
@@ -113,14 +129,15 @@ app.post("/tags", async (req, res) => {
       "INSERT INTO tags (tag_name) VALUES ($1) RETURNING *",
       [tag]
     );
-    res.status(200).json({
+    res.status(201).json({
       status: "success",
       message: "Added a new tag",
       data: dbres.rows,
     });
   } else {
-    res.status(200).json({
-      status: "success",
+    res.status(409).json({
+      //or 500?
+      status: "fail",
       message: "Tag already exists",
       data: tagExists.rows,
     });
@@ -149,7 +166,7 @@ app.post<{}, {}, Comments>("/comments", async (req, res) => {
     "INSERT INTO comments (resource_id, author_id, comment_text) VALUES ($1, $2, $3) RETURNING *",
     [resource_id, author_id, comment_text]
   );
-  res.status(200).json({
+  res.status(201).json({
     status: "success",
     message: "Added a new comment",
     data: dbres.rows,
@@ -183,7 +200,7 @@ app.post<{}, {}, StudyList>("/study_list", async (req, res) => {
     [user_id, resource_id, to_study]
     //how come the to_study default is set to false in the study_list table?
   );
-  res.status(200).json({
+  res.status(201).json({
     status: "success",
     message: "Added a resource to the study list of a specific user",
     data: dbres.rows,
@@ -220,6 +237,89 @@ app.put<{ id: number }>("/resources/:id/likes", async (req, res) => {
     data: dbres.rows,
   });
 });
+
+//add a new resource
+app.post<{}, {}, Resource>("/add_resource", async (req, res) => {
+  //should date_added be default? how does date work in SQL? Can we use CURRENTDATE as default type? 
+  //change liked to default 0
+  const { author_id, title, description, recommended, url, likes } = req.body;
+  const dbres = await client.query(
+    "INSERT INTO resources (author_id, title, description, recommended, url, likes) VALUES\
+    ($1, $2, $3,$4, $5, $6) RETURNING *",
+    [author_id, title, description, recommended, url, likes]
+  );
+  res.status(201).json({
+    status: "success",
+    message: "Added a new resource",
+    data: dbres.rows,
+  });
+});
+
+//add a resource to the study list of a specific user
+app.delete<{}, {}, StudyList>("/study_list/delete", async (req, res) => {
+  //endpoint naming conventions
+  const { user_id, resource_id } = req.body;
+  const resourceExists = await client.query("SELECT * FROM study_list WHERE user_id = $1 and resource_id = $2", [user_id, resource_id])
+  if (resourceExists.rowCount !== 0) {
+    const dbres = await client.query(
+      "DELETE FROM study_list WHERE user_id = $1 and resource_id = $2 RETURNING *",
+      [user_id, resource_id]
+    );
+    res.status(200).json({
+      status: "success",
+      message: "Deleted a resource from study list",
+      data: dbres.rows,
+    });
+  } else {
+    res.status(409).json({
+      //or 500?
+      status: "fail",
+      message: "There was no resource to delete",
+    });
+  }
+
+});
+
+//add a resource to the study list of a specific user
+app.delete<{ id: number }>("/resources/delete/:id", async (req, res) => {
+  //endpoint naming conventions
+  const { id } = req.params;
+  const resourceExists = await client.query("SELECT * FROM resources WHERE id= $1", [id])
+  if (resourceExists.rowCount !== 0) {
+    const dbres = await client.query(
+      "DELETE FROM resources WHERE id = $1 RETURNING *",
+      [id]
+    );
+    res.status(200).json({
+      status: "success",
+      message: "Deleted a resource",
+      data: dbres.rows,
+    });
+  } else {
+    res.status(409).json({
+      //or 500?
+      status: "fail",
+      message: "There was no resource to delete",
+    });
+  }
+
+});
+
+//update the to_study status of a specific resource in a specific user's study list
+app.put<{}, {}, Resource>("/resources/update", async (req, res) => {
+  const { id, title, description, recommended, url } = req.body;
+  const dbres = await client.query(
+    "UPDATE resources SET title=$1, description=$2, recommended=$3, url=$4 WHERE id=$5 RETURNING *",
+    [title, description, recommended, url, id]
+  );
+  res.status(200).json({
+    status: "success",
+    message:
+      "Updated the to_study status of a specific resource in a specific user's study list",
+    data: dbres.rows,
+  });
+});
+
 
 //Start the server on the given port
 const port = process.env.PORT;
