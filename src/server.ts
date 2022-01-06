@@ -191,7 +191,7 @@ app.post<{}, {}, StudyList>("/study_list", async (req, res) => {
 });
 
 //update the to_study status of a specific resource in a specific user's study list
-app.post<{}, {}, StudyList>("/study_list/update", async (req, res) => {
+app.put<{}, {}, StudyList>("/study_list/update", async (req, res) => {
   //when do we use req.body and when to use req.params
   const { user_id, resource_id, to_study } = req.body;
   const dbres = await client.query(
@@ -203,6 +203,20 @@ app.post<{}, {}, StudyList>("/study_list/update", async (req, res) => {
     status: "success",
     message:
       "Updated the to_study status of a specific resource in a specific user's study list",
+    data: dbres.rows,
+  });
+});
+
+//update the number of likes for a specific resource
+app.put<{ id: number }>("/resources/:id/likes", async (req, res) => {
+  const { id } = req.params;
+  const dbres = await client.query(
+    "UPDATE resources SET likes = likes +1 WHERE id = $1 RETURNING *",
+    [id]
+  );
+  res.status(200).json({
+    status: "success",
+    message: "Updated the number of likes for a spific resource",
     data: dbres.rows,
   });
 });
