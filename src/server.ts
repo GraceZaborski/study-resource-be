@@ -28,11 +28,11 @@ client.connect();
 
 // interfaces
 export interface Comments {
-  resource_id: number,
-  author_id: number,
-  comment_text: string,
+  resource_id: number;
+  author_id: number;
+  comment_text: string;
   //unsure of type here
-  date_added?: string
+  date_added?: string;
 }
 
 //get all resources
@@ -136,10 +136,9 @@ app.get<{ id: number }>("/resources/:id/comments", async (req, res) => {
   });
 });
 
-
 //add a new comment associated with a resource
 app.post<{}, {}, Comments>("/comments", async (req, res) => {
-  //will date remain default? 
+  //will date remain default?
   const { resource_id, author_id, comment_text } = req.body;
   const dbres = await client.query(
     "INSERT INTO comments (resource_id, author_id, comment_text) VALUES ($1, $2, $3) RETURNING *",
