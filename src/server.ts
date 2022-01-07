@@ -77,6 +77,16 @@ app.get<{ id: number }>("/resources/:id", async (req, res) => {
   });
 });
 
+//get all users
+app.get("/users", async (req, res) => {
+  const dbres = await client.query("SELECT * FROM users");
+  res.status(200).json({
+    status: "success",
+    message: "Retrieved all users",
+    data: dbres.rows,
+  });
+});
+
 //get all tags
 app.get("/tags", async (req, res) => {
   //do we need just tag name?
