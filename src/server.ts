@@ -56,7 +56,9 @@ export interface Resource {
 
 //get all resources
 app.get("/resources", async (req, res) => {
-  const dbres = await client.query("SELECT * FROM resources");
+  const dbres = await client.query(
+    "SELECT * FROM resources ORDER BY date_added DESC"
+  );
   res.status(200).json({
     status: "success",
     message: "Retrieved bee-sources",
