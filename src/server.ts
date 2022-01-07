@@ -57,7 +57,7 @@ export interface Resource {
 //get all resources
 app.get("/resources", async (req, res) => {
   const dbres = await client.query(
-    "SELECT * FROM resources ORDER BY date_added DESC"
+    "SELECT * FROM resources INNER JOIN users ON users.id = resources.author_id ORDER BY date_added DESC"
   );
   res.status(200).json({
     status: "success",
@@ -69,9 +69,10 @@ app.get("/resources", async (req, res) => {
 //get specific resource
 app.get<{ id: number }>("/resources/:id", async (req, res) => {
   const { id } = req.params;
-  const dbres = await client.query("SELECT * FROM resources WHERE id = $1", [
-    id,
-  ]);
+  const dbres = await client.query(
+    " SELECT * FROM resources INNER JOIN users ON users.id = resources.author_id WHERE resources.id = $1",
+    [id]
+  );
   res.status(200).json({
     status: "success",
     message: "Retrieved one bee-source",
