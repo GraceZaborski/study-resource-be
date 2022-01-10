@@ -1,3 +1,5 @@
+-- Best practice for duplicate column names
+
 -- Delete tables if exists
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS resources;

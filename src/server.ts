@@ -57,7 +57,7 @@ export interface Resource {
 //get all resources
 app.get("/resources", async (req, res) => {
   const dbres = await client.query(
-    "SELECT * FROM resources INNER JOIN users ON users.id = resources.author_id ORDER BY date_added DESC"
+    "SELECT resources.*, users.name,users.is_faculty FROM users INNER JOIN resources ON resources.author_id = users.id ORDER BY date_added DESC"
   );
   res.status(200).json({
     status: "success",
