@@ -63,6 +63,14 @@ CREATE TABLE comments (
   REFERENCES resources(id)
   );
 
+CREATE TABLE likes (
+	author_id INT NOT NULL,
+  	resource_id INT NOT NULL,
+  	PRIMARY KEY (author_id, resource_id),
+  	FOREIGN KEY (author_id) REFERENCES users(id),
+  	FOREIGN KEY (resource_id) REFERENCES resources(id)
+)
+
 -- dummy data
 INSERT INTO users VALUES 
 (DEFAULT, 'Barack Obama', true);

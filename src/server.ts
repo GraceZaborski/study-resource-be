@@ -49,7 +49,7 @@ export interface Resource {
   url: string;
   date_added: string;
   //unsure of type here
-  likes: number;
+
   column: string;
   data: string | number;
 }
@@ -57,7 +57,11 @@ export interface Resource {
 //get all resources
 app.get("/resources", async (req, res) => {
   const dbres = await client.query(
-    "SELECT resources.*, users.name,users.is_faculty FROM users INNER JOIN resources ON resources.author_id = users.id ORDER BY date_added DESC"
+    "SELECT r.*, u.name, u.is_faculty, CAST(COALESCE(l.like_count, 0) AS INT) likes\
+    FROM (SELECT resource_id, COUNT(*) like_count FROM likes GROUP BY resource_id) l\
+    RIGHT JOIN resources r ON r.id = l.resource_id\
+    JOIN users u ON u.id = r.author_id\
+    ORDER BY date_added DESC;"
   );
   res.status(200).json({
     status: "success",
@@ -240,28 +244,35 @@ app.put<{}, {}, StudyList>("/study_list/update", async (req, res) => {
 });
 
 //update the number of likes for a specific resource
-app.put<{ id: number }>("/resources/:id/likes", async (req, res) => {
-  const { id } = req.params;
-  const dbres = await client.query(
-    "UPDATE resources SET likes = likes +1 WHERE id = $1 RETURNING *",
-    [id]
-  );
-  res.status(200).json({
-    status: "success",
-    message: "Updated the number of likes for a spific resource",
-    data: dbres.rows,
-  });
-});
+app.put<{ id: number }, {}, { user_id: number }>(
+  "/resources/:id/likes",
+  async (req, res) => {
+    const { id } = req.params;
+    const { user_id } = req.body;
+    const dbres = await client.query(
+      "INSERT INTO likes (author_id, resource_id) VALUES ($1, $2)",
+      [user_id, id]
+    );
+    res.status(200).json({
+      status: "success",
+      message: "Updated the number of likes for a spific resource",
+      data: {
+        resource_id: id,
+        user_id,
+      },
+    });
+  }
+);
 
 //add a new resource
 app.post<{}, {}, Resource>("/add_resource", async (req, res) => {
   //should date_added be default? how does date work in SQL? Can we use CURRENTDATE as default type?
   //change liked to default 0
-  const { author_id, title, description, recommended, url, likes } = req.body;
+  const { author_id, title, description, recommended, url } = req.body;
   const dbres = await client.query(
     "INSERT INTO resources (author_id, title, description, recommended, url, likes) VALUES\
     ($1, $2, $3,$4, $5, $6) RETURNING *",
-    [author_id, title, description, recommended, url, likes]
+    [author_id, title, description, recommended, url]
   );
   res.status(201).json({
     status: "success",
