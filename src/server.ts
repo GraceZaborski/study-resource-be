@@ -159,7 +159,11 @@ app.post("/tags", async (req, res) => {
 app.get<{ id: number }>("/resources/:id/comments", async (req, res) => {
   const { id } = req.params;
   const dbres = await client.query(
-    "SELECT * FROM resources INNER JOIN comments ON resources.id = comments.resource_id WHERE resources.id = $1",
+    "SELECT comments.*, users.name FROM resources\
+    INNER JOIN comments ON resources.id = comments.resource_id\
+    INNER JOIN users ON users.id = comments.author_id\
+    WHERE resources.id = $1\
+    ORDER BY comments.date_added DESC",
     [id]
   );
   res.status(200).json({
