@@ -178,7 +178,7 @@ app.post<{}, {}, Comments>("/comments", async (req, res) => {
   //will date remain default?
   const { resource_id, author_id, comment_text } = req.body;
   const dbres = await client.query(
-    "INSERT INTO comments (resource_id, author_id, comment_text) VALUES ($1, $2, $3) RETURNING *",
+    "INSERT INTO comments (comment_id, resource_id, author_id, comment_text, date_added) VALUES (DEFAULT, $1, $2, $3, DEFAULT) RETURNING *",
     [resource_id, author_id, comment_text]
   );
   res.status(201).json({
