@@ -11,12 +11,14 @@ config(); //Read .env file lines as though they were env vars.
 //For the ssl property of the DB connection config, use a value of...
 // false - when connecting to a local DB
 // { rejectUnauthorized: false } - when connecting to a heroku DB
-const herokuSSLSetting = { rejectUnauthorized: false };
-const sslSetting = process.env.LOCAL ? false : herokuSSLSetting;
-const dbConfig = {
-  connectionString: process.env.DATABASE_URL,
-  ssl: sslSetting,
-};
+// const herokuSSLSetting = { rejectUnauthorized: false };
+// const sslSetting = process.env.LOCAL ? false : herokuSSLSetting;
+const dbConfig = process.env.LOCAL
+  ? { database: `${process.env.LOCAL_DB}` }
+  : {
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+    };
 
 const app = express();
 
@@ -31,35 +33,30 @@ export interface Comments {
   resource_id: number;
   author_id: number;
   comment_text: string;
-  //unsure of type here
-  date_added?: string;
 }
+
 export interface StudyList {
   resource_id: number;
   user_id: number;
-  to_study: boolean;
+  studied: boolean;
 }
 
 export interface Resource {
-  id: number;
   author_id: number;
   title: string;
   description: string;
   recommended: string;
   url: string;
-  date_added: string;
-  //unsure of type here
-
-  column: string;
-  data: string | number;
 }
 
-//get all resources
+// get all resources
 app.get("/resources", async (req, res) => {
   const dbres = await client.query(
-    "SELECT r.*, u.name, u.is_faculty, CAST(COALESCE(l.like_count, 0) AS INT) likes\
-    FROM (SELECT resource_id, COUNT(*) like_count FROM likes GROUP BY resource_id) l\
+    "SELECT r.*, u.name, u.is_faculty, CAST(COALESCE(l.like_count, 0) AS INT) likes,\
+    CAST(COALESCE(d.dislike_count, 0) AS INT) dislikes\
+    FROM (SELECT resource_id, COUNT(*) like_count FROM likes WHERE liked = true GROUP BY resource_id) l\
     RIGHT JOIN resources r ON r.id = l.resource_id\
+    LEFT JOIN (SELECT resource_id, COUNT(*) dislike_count FROM likes WHERE liked = false GROUP BY resource_id) d ON r.id = d.resource_id\
     JOIN users u ON u.id = r.author_id\
     ORDER BY date_added DESC;"
   );
@@ -70,21 +67,27 @@ app.get("/resources", async (req, res) => {
   });
 });
 
-//get specific resource
+// get specific resource with id
 app.get<{ id: number }>("/resources/:id", async (req, res) => {
   const { id } = req.params;
   const dbres = await client.query(
-    " SELECT * FROM resources INNER JOIN users ON users.id = resources.author_id WHERE resources.id = $1",
+    "SELECT r.*, u.name, u.is_faculty, CAST(COALESCE(l.like_count, 0) AS INT) likes,\
+    CAST(COALESCE(d.dislike_count, 0) AS INT) dislikes\
+    FROM (SELECT resource_id, COUNT(*) like_count FROM likes WHERE liked = true GROUP BY resource_id) l\
+    RIGHT JOIN resources r ON r.id = l.resource_id\
+    LEFT JOIN (SELECT resource_id, COUNT(*) dislike_count FROM likes WHERE liked = false GROUP BY resource_id) d ON r.id = d.resource_id\
+    JOIN users u ON u.id = r.author_id\
+    WHERE r.id = $1",
     [id]
   );
   res.status(200).json({
     status: "success",
     message: "Retrieved one bee-source",
-    data: dbres.rows,
+    data: dbres.rows[0],
   });
 });
 
-//get all users
+// get all users
 app.get("/users", async (req, res) => {
   const dbres = await client.query("SELECT * FROM users");
   res.status(200).json({
@@ -94,7 +97,7 @@ app.get("/users", async (req, res) => {
   });
 });
 
-//get all tags
+// get all tags
 app.get("/tags", async (req, res) => {
   //do we need just tag name?
   const dbres = await client.query("SELECT * FROM tags");
@@ -104,8 +107,7 @@ app.get("/tags", async (req, res) => {
     data: dbres.rows,
   });
 });
-
-//get specified tag
+// get a tag with tag_id
 app.get<{ id: number }>("/tags/:id", async (req, res) => {
   const { id } = req.params;
   const dbres = await client.query("SELECT * FROM tags WHERE tag_id = $1", [
@@ -118,7 +120,7 @@ app.get<{ id: number }>("/tags/:id", async (req, res) => {
   });
 });
 
-//get all tags associated with a specified resource
+// get all tags associated with a specific resource
 app.get<{ id: number }>("/resources/:id/tags", async (req, res) => {
   const { id } = req.params;
   const dbres = await client.query(
@@ -131,6 +133,73 @@ app.get<{ id: number }>("/resources/:id/tags", async (req, res) => {
     data: dbres.rows,
   });
 });
+
+// get all comments to an associated resource
+app.get<{ id: number }>("/resources/:id/comments", async (req, res) => {
+  const { id } = req.params;
+  const dbres = await client.query(
+    "SELECT comments.*, users.name FROM resources\
+    INNER JOIN comments ON resources.id = comments.resource_id\
+    INNER JOIN users ON users.id = comments.author_id\
+    WHERE resources.id = $1\
+    ORDER BY comments.date_added DESC",
+    [id]
+  );
+  res.status(200).json({
+    status: "success",
+    message: "Retrieved all comments for a single resource",
+    data: dbres.rows,
+  });
+});
+
+// get the study list resources for an associated user
+app.get<{ user_id: number }>("/study_list/:user_id", async (req, res) => {
+  const { user_id } = req.params;
+  const dbres = await client.query(
+    "SELECT * FROM users\
+    JOIN study_list ON users.id = study_list.user_id\
+    JOIN resources ON resources.id = study_list.resource_id\
+    WHERE users.id = $1",
+    [user_id]
+  );
+  res.status(200).json({
+    status: "success",
+    message: "Retrieved all study list resources for a user",
+    data: dbres.rows,
+  });
+});
+
+// update the studied status of a specific resource in a specific user's study list
+app.put<{}, {}, StudyList>("/study_list/update", async (req, res) => {
+  //when do we use req.body and when to use req.params
+  const { user_id, resource_id, studied } = req.body;
+  const dbres = await client.query(
+    "UPDATE study_list SET studied = $1 WHERE user_id = $2 and resource_id = $3 RETURNING *",
+    [studied, user_id, resource_id]
+    //how come the to_study default is set to false in the study_list table?
+  );
+  res.status(200).json({
+    status: "success",
+    message:
+      "Updated the to_study status of a specific resource in a specific user's study list",
+    data: dbres.rows,
+  });
+});
+
+//update the to_study status of a specific resource in a specific user's study list [IN DEVELOPMENT]
+// app.put<{}, {}, Resource>("/resources/update", async (req, res) => {
+//   const { title, description, recommended, url } = req.body;
+//   const dbres = await client.query(
+//     "UPDATE resources SET title=$1, description=$2, recommended=$3, url=$4 WHERE id=$5 RETURNING *",
+//     [title, description, recommended, url]
+//   );
+//   res.status(200).json({
+//     status: "success",
+//     message:
+//       "Updated the to_study status of a specific resource in a specific user's study list",
+//     data: dbres.rows,
+//   });
+// });
 
 //add a new tag when it doesn't already exist
 app.post("/tags", async (req, res) => {
@@ -159,27 +228,8 @@ app.post("/tags", async (req, res) => {
   }
 });
 
-//get the comments to an associated resource
-app.get<{ id: number }>("/resources/:id/comments", async (req, res) => {
-  const { id } = req.params;
-  const dbres = await client.query(
-    "SELECT comments.*, users.name FROM resources\
-    INNER JOIN comments ON resources.id = comments.resource_id\
-    INNER JOIN users ON users.id = comments.author_id\
-    WHERE resources.id = $1\
-    ORDER BY comments.date_added DESC",
-    [id]
-  );
-  res.status(200).json({
-    status: "success",
-    message: "Retrieved all comments for a single resource",
-    data: dbres.rows,
-  });
-});
-
 //add a new comment associated with a resource
 app.post<{}, {}, Comments>("/comments", async (req, res) => {
-  //will date remain default?
   const { resource_id, author_id, comment_text } = req.body;
   const dbres = await client.query(
     "INSERT INTO comments (resource_id, author_id, comment_text) VALUES ($1, $2, $3) RETURNING *",
@@ -192,31 +242,14 @@ app.post<{}, {}, Comments>("/comments", async (req, res) => {
   });
 });
 
-//get the study list resources for an associated user
-app.get<{ user_id: number }>("/study_list/:user_id", async (req, res) => {
-  const { user_id } = req.params;
-  const dbres = await client.query(
-    "SELECT * FROM users\
-    JOIN study_list ON users.id = study_list.user_id\
-    JOIN resources ON resources.id = study_list.resource_id\
-    WHERE users.id = $1",
-    [user_id]
-  );
-  res.status(200).json({
-    status: "success",
-    message: "Retrieved all study list resources for a user",
-    data: dbres.rows,
-  });
-});
-
 //add a resource to the study list of a specific user
 app.post<{}, {}, StudyList>("/study_list", async (req, res) => {
   //when do we use req.body and when to use req.params?
   //need to alter the front-end so that you can't add a specific resource to a study list more than once
-  const { user_id, resource_id, to_study } = req.body;
+  const { user_id, resource_id, studied } = req.body;
   const dbres = await client.query(
     "INSERT INTO study_list (user_id, resource_id, to_study) VALUES ($1, $2, $3) RETURNING *",
-    [user_id, resource_id, to_study]
+    [user_id, resource_id, studied]
     //how come the to_study default is set to false in the study_list table?
   );
   res.status(201).json({
@@ -226,32 +259,15 @@ app.post<{}, {}, StudyList>("/study_list", async (req, res) => {
   });
 });
 
-//update the to_study status of a specific resource in a specific user's study list
-app.put<{}, {}, StudyList>("/study_list/update", async (req, res) => {
-  //when do we use req.body and when to use req.params
-  const { user_id, resource_id, to_study } = req.body;
-  const dbres = await client.query(
-    "UPDATE study_list SET to_study = $1 WHERE user_id = $2 and resource_id = $3 RETURNING *",
-    [to_study, user_id, resource_id]
-    //how come the to_study default is set to false in the study_list table?
-  );
-  res.status(200).json({
-    status: "success",
-    message:
-      "Updated the to_study status of a specific resource in a specific user's study list",
-    data: dbres.rows,
-  });
-});
-
-//update the number of likes for a specific resource
-app.put<{ id: number }, {}, { user_id: number }>(
+// add an entry into likes table to like or dislike
+app.post<{ id: number }, {}, { user_id: number; liked: boolean }>(
   "/resources/:id/likes",
   async (req, res) => {
     const { id } = req.params;
-    const { user_id } = req.body;
+    const { user_id, liked } = req.body;
     const dbres = await client.query(
-      "INSERT INTO likes (author_id, resource_id) VALUES ($1, $2)",
-      [user_id, id]
+      "INSERT INTO likes (author_id, resource_id, liked) VALUES ($1, $2, $3)",
+      [user_id, id, liked]
     );
     res.status(200).json({
       status: "success",
@@ -280,6 +296,48 @@ app.post<{}, {}, Resource>("/add_resource", async (req, res) => {
     data: dbres.rows,
   });
 });
+
+//associates an existing tag to a resource
+app.post<{ id: number }, {}, { tag_ids: number[] }>(
+  "/resources/:id/tags",
+  async (req, res) => {
+    const { id } = req.params;
+    const { tag_ids } = req.body;
+    console.log("type of tag_ids", typeof tag_ids);
+    for (const tag_id of tag_ids) {
+      await client.query(
+        "INSERT INTO resource_tags (tag_id, resource_id) VALUES ($1, $2)",
+        [tag_id, id]
+      );
+    }
+    const dbres = await client.query(
+      "SELECT rt.*, t.tag_name, t.tag_colour FROM resource_tags rt JOIN tags t ON rt.tag_id = t.tag_id"
+    );
+    res.status(201).json({
+      status: "success",
+      message: "Added a new resource",
+      data: dbres.rows,
+    });
+  }
+);
+
+// delete an entry in like table to unlike and undislike
+app.delete<{ id: number }, {}, { user_id: number }>(
+  "/resources/:id/likes",
+  async (req, res) => {
+    const { id } = req.params;
+    const { user_id } = req.body;
+    const dbres = await client.query(
+      "DELETE FROM likes WHERE author_id = $1 AND resource_id = $2 RETURNING *;",
+      [user_id, id]
+    );
+    res.status(200).json({
+      status: "success",
+      message: "Updated the number of likes for a spific resource",
+      data: dbres.rows[0],
+    });
+  }
+);
 
 //add a resource to the study list of a specific user
 app.delete<{}, {}, StudyList>("/study_list/delete", async (req, res) => {
@@ -333,21 +391,6 @@ app.delete<{ id: number }>("/resources/delete/:id", async (req, res) => {
       message: "There was no resource to delete",
     });
   }
-});
-
-//update the to_study status of a specific resource in a specific user's study list
-app.put<{}, {}, Resource>("/resources/update", async (req, res) => {
-  const { id, title, description, recommended, url } = req.body;
-  const dbres = await client.query(
-    "UPDATE resources SET title=$1, description=$2, recommended=$3, url=$4 WHERE id=$5 RETURNING *",
-    [title, description, recommended, url, id]
-  );
-  res.status(200).json({
-    status: "success",
-    message:
-      "Updated the to_study status of a specific resource in a specific user's study list",
-    data: dbres.rows,
-  });
 });
 
 //Start the server on the given port
