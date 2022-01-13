@@ -87,6 +87,20 @@ app.get<{ id: number }>("/resources/:id", async (req, res) => {
   });
 });
 
+// get all tags associated with a specific resource
+app.get<{ id: number }>("/resources/:id/tags", async (req, res) => {
+  const { id } = req.params;
+  const dbres = await client.query(
+    "SELECT t.* FROM tags t JOIN resource_tags rt ON t.tag_id = rt.tag_id WHERE rt.resource_id = $1",
+    [id]
+  );
+  res.status(200).json({
+    status: "success",
+    message: "Retrieved all tags for a single resource",
+    data: dbres.rows,
+  });
+});
+
 // get all users
 app.get("/users", async (req, res) => {
   const dbres = await client.query("SELECT * FROM users");
@@ -116,20 +130,6 @@ app.get<{ id: number }>("/tags/:id", async (req, res) => {
   res.status(200).json({
     status: "success",
     message: "Retrieved one tag",
-    data: dbres.rows,
-  });
-});
-
-// get all tags associated with a specific resource
-app.get<{ id: number }>("/resources/:id/tags", async (req, res) => {
-  const { id } = req.params;
-  const dbres = await client.query(
-    "SELECT * FROM tags INNER JOIN resource_tags ON tags.tag_id = resource_tags.tag_id WHERE resource_tags.resource_id = $1",
-    [id]
-  );
-  res.status(200).json({
-    status: "success",
-    message: "Retrieved all tags for a single resource",
     data: dbres.rows,
   });
 });
