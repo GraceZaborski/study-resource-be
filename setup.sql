@@ -22,6 +22,7 @@ CREATE TABLE resources (
   author_id int NOT NULL,
   title VARCHAR(255) NOT NULL,
   description text NOT NULL,
+  type VARCHAR(255) NOT NULL,
   recommended VARCHAR(255) NOT NULL,
   url VARCHAR(255) NOT NULL,
   date_added BIGINT NOT NULL DEFAULT date_part('epoch', now()),
@@ -55,7 +56,7 @@ CREATE TABLE comments (
   comment_id SERIAL PRIMARY KEY NOT NULL,
   resource_id int NOT NULL,
   author_id int NOT NULL,
-  comment_text text,
+  comment_text text NOT NULL,
   date_added BIGINT NOT NULL DEFAULT date_part('epoch', now()),
   FOREIGN KEY (author_id) REFERENCES users (id),
   FOREIGN KEY (resource_id) REFERENCES resources (id)
@@ -100,16 +101,16 @@ VALUES
 ('Richard', true);
 
 -- insert into resources
-INSERT INTO resources (author_id, title, description, recommended, url)
+INSERT INTO resources (author_id, title, description, type, recommended, url)
 VALUES 
-(1,'CSS tricks','A great website for styling up your apps.','Un-bee-table','https://css-tricks.com/'),
-(1,'My first resource', 'Updating the description','Un-bee-liveable','www.google.com'),
-(4,'Battle practice','A truly magnificent website for practicing your code warfare skills. Find your own Austerlitz on codewars!','Un-bee-table','https://www.codewars.com'),
-(1,'Beri rules', 'LOL','May-bee','www.youtube.com'),
-(2,'Computer programming','Computer programming is the process of designing and building an executable computer program to accomplish a specific computing result or to perform a particular task. Programming involves tasks such as analysis, generating algorithms, profiling algorithms accuracy and resource consumption, and the implementation of algorithms in a chosen programming language (commonly referred to as coding)','Un-bee-lieveable','www.google.com'),
-(2,'Beer','Beer is one of the oldest[1][2][3] and most widely consumed[4] alcoholic drinks in the world, and the third most popular drink overall after water and tea.[5] It is produced by the brewing and fermentation of starches, mainly derived from cereal grains—most commonly from malted barley, though wheat, maize (corn), rice, and oats are also used. During the brewing process, fermentation of the starch sugars in the wort produces ethanol and carbonation in the resulting beer.[6] Most modern beer is brewed with hops, which add bitterness and other flavours and act as a natural preservative and stabilizing agent.','Un-bee-liveable','www.google.com'),
-(1,'Basics of Javascript Course','A course on javascript, it is three hours long and useless, so my personal opinon is: no we cannot.','Buzzkill','https://www.youtube.com/watch?v=PkZNo7MFNFg'),
-(3,'HTTP status codes','An overview of HTTP status codes. Useful, but not riveting','May-bee','https://developer.mozilla.org/en-US/docs/Web/HTTP/Status');
+(1,'CSS tricks','A great website for styling up your apps.', 'Article','Un-bee-table','https://css-tricks.com/'),
+(1,'My first resource', 'Updating the description', 'Article','Un-bee-liveable','www.google.com'),
+(4,'Battle practice','A truly magnificent website for practicing your code warfare skills. Find your own Austerlitz on codewars!', 'Article','Un-bee-table','https://www.codewars.com'),
+(1,'Beri rules', 'LOL', 'Article','May-bee','www.youtube.com'),
+(2,'Computer programming','Computer programming is the process of designing and building an executable computer program to accomplish a specific computing result or to perform a particular task. Programming involves tasks such as analysis, generating algorithms, profiling algorithms accuracy and resource consumption, and the implementation of algorithms in a chosen programming language (commonly referred to as coding)', 'Article','Un-bee-lieveable','www.google.com'),
+(2,'Beer','Beer is one of the oldest[1][2][3] and most widely consumed[4] alcoholic drinks in the world, and the third most popular drink overall after water and tea.[5] It is produced by the brewing and fermentation of starches, mainly derived from cereal grains—most commonly from malted barley, though wheat, maize (corn), rice, and oats are also used. During the brewing process, fermentation of the starch sugars in the wort produces ethanol and carbonation in the resulting beer.[6] Most modern beer is brewed with hops, which add bitterness and other flavours and act as a natural preservative and stabilizing agent.', 'Article','Un-bee-liveable','www.google.com'),
+(1,'Basics of Javascript Course','A course on javascript, it is three hours long and useless, so my personal opinon is: no we cannot.', 'Article','Buzzkill','https://www.youtube.com/watch?v=PkZNo7MFNFg'),
+(3,'HTTP status codes','An overview of HTTP status codes. Useful, but not riveting', 'Article','May-bee','https://developer.mozilla.org/en-US/docs/Web/HTTP/Status');
 
 -- insert into tags
 INSERT INTO tags (tag_name, tag_colour)
@@ -121,6 +122,31 @@ VALUES
 ('FrontEnd', '#786b6f'),
 ('BackEnd', '#7fde25'),
 ('Javascript', '#FFC300');
+
+-- insert into resource tags (to associate tags with a specific resource)
+INSERT INTO resource_tags (tag_id, resource_id)
+VALUES
+(1, 1),
+(2, 1),
+(3, 1),
+(4, 2),
+(5, 2),
+(6, 2),
+(3, 7),
+(4, 7),
+(5, 7),
+(6, 7),
+(2, 8),
+(1, 8);
+
+-- insert into comments table 
+INSERT INTO comments (resource_id, author_id, comment_text)
+VALUES
+(7, 16, 'Woah! This is so cool'),
+(7, 14, 'Yeah I know right!'),
+(7, 13, 'Hivemind is literally the best thing'),
+(7, 12, 'Its defo gna be a unicorn one day :))');
+
 
 -- -- dummy data
 -- INSERT INTO users VALUES 
