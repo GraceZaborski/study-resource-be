@@ -71,10 +71,21 @@ app.get("/resources", async (req, res) => {
     JOIN users u ON u.id = r.author_id\
     ORDER BY date_added DESC;"
   );
+
+  const response = [];
+  for (const resource of dbres.rows) {
+    const dbres = await client.query(
+      "SELECT rt.tag_id FROM resource_tags rt WHERE resource_id = $1",
+      [resource.id]
+    );
+    const tagsOfResource = dbres.rows.map((tagObj) => tagObj.tag_id);
+    response.push({ ...resource, tags: tagsOfResource });
+  }
+
   res.status(200).json({
     status: "success",
     message: "Retrieved bee-sources",
-    data: dbres.rows,
+    data: response,
   });
 });
 
