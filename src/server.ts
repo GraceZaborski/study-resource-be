@@ -62,6 +62,7 @@ export interface Resource {
 
 // get all resources
 app.get("/resources", async (req, res) => {
+  // edit documentation
   const dbres = await client.query(
     "SELECT r.*, u.name, u.is_faculty, CAST(COALESCE(l.like_count, 0) AS INT) likes,\
     CAST(COALESCE(d.dislike_count, 0) AS INT) dislikes\
@@ -142,6 +143,24 @@ app.get<{ id: number }>("/resources/:id/comments", async (req, res) => {
   });
 });
 
+// get's like/dislike status for a specific user on a specific resource
+app.get<{ id: number }, {}, { author_id: number }>(
+  "/resources/:id/likes",
+  async (req, res) => {
+    const { id } = req.params;
+    const { author_id } = req.body;
+    const dbres = await client.query(
+      "SELECT * FROM likes WHERE author_id = $1 AND resource_id = $2;",
+      [author_id, id]
+    );
+    res.status(200).json({
+      status: "success",
+      message: `Got like/dislike status for user ${author_id} of resource ${id}`,
+      data: dbres.rows[0].liked,
+    });
+  }
+);
+
 //add a new comment associated with a resource
 app.post<{ id: number }, {}, Comment>(
   "/resources/:id/comments",
@@ -179,7 +198,7 @@ app.post<{ id: number }, {}, Like>("/resources/:id/likes", async (req, res) => {
 });
 
 // associates existing tags to a resource --> need to deal with duplicate tags
-app.post<{ id: number }, {}, { tag_ids: number[] }>(
+app.post<{ id: number }, {}, { tag_ids: number[] }>( // edit documentation
   "/resources/:id/tags",
   async (req, res) => {
     const { id } = req.params;
