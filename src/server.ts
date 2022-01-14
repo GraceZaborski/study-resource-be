@@ -166,25 +166,24 @@ app.post<{ id: number }, {}, Like>("/resources/:id/likes", async (req, res) => {
   });
 });
 
-//associates existing tags to a resource
+// associates existing tags to a resource --> need to deal with duplicate tags
 app.post<{ id: number }, {}, { tag_ids: number[] }>(
   "/resources/:id/tags",
   async (req, res) => {
     const { id } = req.params;
     const { tag_ids } = req.body;
+    const response = [];
     for (const tag_id of tag_ids) {
-      await client.query(
-        "INSERT INTO resource_tags (tag_id, resource_id) VALUES ($1, $2)",
+      const dbres = await client.query(
+        "INSERT INTO resource_tags (tag_id, resource_id) VALUES ($1, $2) RETURNING *",
         [tag_id, id]
       );
+      response.push(dbres.rows[0]);
     }
-    const dbres = await client.query(
-      "SELECT rt.*, t.tag_name, t.tag_colour FROM resource_tags rt JOIN tags t ON rt.tag_id = t.tag_id"
-    );
     res.status(201).json({
       status: "success",
       message: "Associated existing tags with an existing resource",
-      data: dbres.rows,
+      data: response,
     });
   }
 );
