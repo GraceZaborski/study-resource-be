@@ -75,10 +75,10 @@ app.get("/resources", async (req, res) => {
   const response = [];
   for (const resource of dbres.rows) {
     const dbres = await client.query(
-      "SELECT rt.tag_id FROM resource_tags rt WHERE resource_id = $1",
+      "SELECT t.* FROM tags t JOIN resource_tags rt ON t.tag_id = rt.tag_id WHERE rt.resource_id = $1",
       [resource.id]
     );
-    const tagsOfResource = dbres.rows.map((tagObj) => tagObj.tag_id);
+    const tagsOfResource = dbres.rows.map((tagObj) => tagObj.tag_name);
     response.push({ ...resource, tags: tagsOfResource });
   }
 
