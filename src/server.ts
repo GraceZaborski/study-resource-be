@@ -74,12 +74,12 @@ app.get("/resources", async (req, res) => {
 
   const response = [];
   for (const resource of dbres.rows) {
-    const dbres = await client.query(
+    const tagsDbres = await client.query(
       "SELECT t.* FROM tags t JOIN resource_tags rt ON t.tag_id = rt.tag_id WHERE rt.resource_id = $1",
       [resource.id]
     );
-    const tagsOfResource = dbres.rows.map((tagObj) => tagObj.tag_name);
-    response.push({ ...resource, tags: tagsOfResource });
+    // const tagsOfResource = tagsDbres.rows.map((tagObj) => tagObj.tag_name); // if you only want the tag name, not the tag object
+    response.push({ ...resource, tags: tagsDbres.rows });
   }
 
   res.status(200).json({
@@ -102,6 +102,7 @@ app.get<{ id: number }>("/resources/:id", async (req, res) => {
     WHERE r.id = $1",
     [id]
   );
+
   res.status(200).json({
     status: "success",
     message: "Retrieved one bee-source",
@@ -183,19 +184,52 @@ app.post<{ id: number }, {}, { tag_ids: number[] }>(
   async (req, res) => {
     const { id } = req.params;
     const { tag_ids } = req.body;
-    const response = [];
+    const successResponse = [];
+    const failResponse = [];
     for (const tag_id of tag_ids) {
-      const dbres = await client.query(
-        "INSERT INTO resource_tags (tag_id, resource_id) VALUES ($1, $2) RETURNING *",
-        [tag_id, id]
+      const tagAdded = await client.query(
+        "SELECT * FROM resource_tags WHERE resource_id = $1 AND tag_id = $2",
+        [id, tag_id]
       );
-      response.push(dbres.rows[0]);
+      if (tagAdded.rowCount === 0) {
+        const dbres = await client.query(
+          "INSERT INTO resource_tags (tag_id, resource_id) VALUES ($1, $2) RETURNING *",
+          [tag_id, id]
+        );
+        successResponse.push(dbres.rows[0]);
+      } else {
+        failResponse.push(tagAdded.rows[0]);
+      }
     }
-    res.status(201).json({
-      status: "success",
-      message: "Associated existing tags with an existing resource",
-      data: response,
-    });
+
+    if (failResponse.length === 0) {
+      res.status(201).json({
+        status: "success",
+        message: "Associated existing tags with an existing resource",
+        data: {
+          associated: successResponse,
+          alreadyAdded: failResponse,
+        },
+      });
+    } else if (successResponse.length > 0) {
+      res.status(409).json({
+        status: "partial success",
+        message: "Associated some existing tags with an existing resource",
+        data: {
+          associated: successResponse,
+          alreadyAdded: failResponse,
+        },
+      });
+    } else {
+      res.status(400).json({
+        status: "complete failure",
+        message: "no tags were successfully associated with this resource",
+        data: {
+          associated: successResponse,
+          alreadyAdded: failResponse,
+        },
+      });
+    }
   }
 );
 
@@ -207,10 +241,14 @@ app.post<{}, {}, Resource>("/resources", async (req, res) => {
     ($1, $2, $3,$4, $5, $6) RETURNING *",
     [author_id, title, description, type, recommended, url]
   );
+  const latestResource = await client.query(
+    "SELECT * FROM resources ORDER BY date_added DESC LIMIT 1;"
+  );
+  console.log(latestResource);
   res.status(201).json({
     status: "success",
     message: "Added a new resource",
-    data: dbres.rows,
+    data: { ...dbres.rows[0], id: latestResource.rows[0].id },
   });
 });
 
@@ -335,7 +373,10 @@ app.post<{}, {}, { tags: Tag[] }>("/tags", async (req, res) => {
     res.status(200).json({
       status: "success",
       message: "all tags were successfully added",
-      data: successResponse,
+      data: {
+        added: successResponse,
+        duplicates: failResponse,
+      },
     });
   } else if (successResponse.length > 0) {
     res.status(409).json({
@@ -351,6 +392,7 @@ app.post<{}, {}, { tags: Tag[] }>("/tags", async (req, res) => {
       status: "complete failure",
       message: "no tags were successfully added",
       data: {
+        added: successResponse,
         duplicates: failResponse,
       },
     });
