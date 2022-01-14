@@ -172,7 +172,6 @@ app.post<{ id: number }, {}, { tag_ids: number[] }>(
   async (req, res) => {
     const { id } = req.params;
     const { tag_ids } = req.body;
-    console.log("type of tag_ids", typeof tag_ids);
     for (const tag_id of tag_ids) {
       await client.query(
         "INSERT INTO resource_tags (tag_id, resource_id) VALUES ($1, $2)",
@@ -204,6 +203,24 @@ app.post<{}, {}, Resource>("/resources", async (req, res) => {
     data: dbres.rows,
   });
 });
+
+// delete an entry in like table to unlike and undislike
+app.delete<{ id: number }, {}, { author_id: number }>(
+  "/resources/:id/likes",
+  async (req, res) => {
+    const { id } = req.params;
+    const { author_id } = req.body;
+    const dbres = await client.query(
+      "DELETE FROM likes WHERE author_id = $1 AND resource_id = $2 RETURNING *;",
+      [author_id, id]
+    );
+    res.status(200).json({
+      status: "success",
+      message: `user with id ${author_id} unliked/undisliked a resource of id ${id}`,
+      data: dbres.rows[0],
+    });
+  }
+);
 
 //update the to_study status of a specific resource in a specific user's study list *PARKED*
 // app.put<{}, {}, Resource>("/resources/update", async (req, res) => {
@@ -359,15 +376,20 @@ app.post<{}, {}, { tags: Tag[] }>("/tags", async (req, res) => {
 app.get<{ user_id: number }>("/study_list/:user_id", async (req, res) => {
   const { user_id } = req.params;
   const dbres = await client.query(
-    "SELECT * FROM users\
-    JOIN study_list ON users.id = study_list.user_id\
-    JOIN resources ON resources.id = study_list.resource_id\
-    WHERE users.id = $1",
+    "SELECT r.*, u.name, u.is_faculty, CAST(COALESCE(l.like_count, 0) AS INT) likes,\
+    CAST(COALESCE(d.dislike_count, 0) AS INT) dislikes, sl.studied\
+    FROM (SELECT resource_id, COUNT(*) like_count FROM likes WHERE liked = true GROUP BY resource_id) l\
+    RIGHT JOIN resources r ON r.id = l.resource_id\
+    LEFT JOIN (SELECT resource_id, COUNT(*) dislike_count FROM likes WHERE liked = false GROUP BY resource_id) d ON r.id = d.resource_id\
+    JOIN users u ON u.id = r.author_id\
+    JOIN study_list sl ON r.id = sl.resource_id\
+    WHERE sl.user_id = $1\
+    ORDER BY date_added DESC;",
     [user_id]
   );
   res.status(200).json({
     status: "success",
-    message: "Retrieved all study list resources for a user",
+    message: `Retrieved all study list resources for user ${user_id}`,
     data: dbres.rows,
   });
 });
@@ -378,10 +400,10 @@ app.post<{ user_id: number }, {}, StudyList>(
   async (req, res) => {
     //need to alter the front-end so that you can't add a specific resource to a study list more than once
     const { user_id } = req.params;
-    const { resource_id, studied } = req.body;
+    const { resource_id } = req.body;
     const dbres = await client.query(
-      "INSERT INTO study_list (user_id, resource_id, studied) VALUES ($1, $2, $3) RETURNING *",
-      [user_id, resource_id, studied]
+      "INSERT INTO study_list (user_id, resource_id, studied) VALUES ($1, $2, DEFAULT) RETURNING *",
+      [user_id, resource_id]
     );
     res.status(201).json({
       status: "success",
@@ -390,8 +412,6 @@ app.post<{ user_id: number }, {}, StudyList>(
     });
   }
 );
-
-// <---
 
 // update the studied status of a specific resource in a specific user's study list
 app.put<{ user_id: number }, {}, StudyList>(
@@ -403,7 +423,6 @@ app.put<{ user_id: number }, {}, StudyList>(
     const dbres = await client.query(
       "UPDATE study_list SET studied = $1 WHERE user_id = $2 and resource_id = $3 RETURNING *",
       [studied, user_id, resource_id]
-      //how come the to_study default is set to false in the study_list table?
     );
     res.status(200).json({
       status: "success",
@@ -413,6 +432,8 @@ app.put<{ user_id: number }, {}, StudyList>(
     });
   }
 );
+
+// <---
 
 //update the to_study status of a specific resource in a specific user's study list [IN DEVELOPMENT]
 // app.put<{}, {}, Resource>("/resources/update", async (req, res) => {
@@ -428,24 +449,6 @@ app.put<{ user_id: number }, {}, StudyList>(
 //     data: dbres.rows,
 //   });
 // });
-
-// delete an entry in like table to unlike and undislike
-app.delete<{ id: number }, {}, { user_id: number }>(
-  "/resources/:id/likes",
-  async (req, res) => {
-    const { id } = req.params;
-    const { user_id } = req.body;
-    const dbres = await client.query(
-      "DELETE FROM likes WHERE author_id = $1 AND resource_id = $2 RETURNING *;",
-      [user_id, id]
-    );
-    res.status(200).json({
-      status: "success",
-      message: "Updated the number of likes for a spific resource",
-      data: dbres.rows[0],
-    });
-  }
-);
 
 //add a resource to the study list of a specific user
 // app.delete<{}, {}, StudyList>("/study_list/delete", async (req, res) => {
