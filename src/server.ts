@@ -269,14 +269,10 @@ app.post<{}, {}, Resource>("/resources", async (req, res) => {
     ($1, $2, $3,$4, $5, $6) RETURNING *",
     [author_id, title, description, type, recommended, url]
   );
-  const latestResource = await client.query(
-    "SELECT * FROM resources ORDER BY date_added DESC LIMIT 1;"
-  );
-  console.log(latestResource);
   res.status(201).json({
     status: "success",
     message: "Added a new resource",
-    data: { ...dbres.rows[0], id: latestResource.rows[0].id },
+    data: dbres.rows[0],
   });
 });
 
