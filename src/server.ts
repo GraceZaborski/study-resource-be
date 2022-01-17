@@ -171,6 +171,7 @@ app.get<{ id: number }, {}, { author_id: number }>( // add documentation
 );
 
 //add a new comment associated with a resource
+
 app.post<{ id: number }, {}, Comment>(
   "/resources/:id/comments",
   async (req, res) => {
@@ -195,6 +196,7 @@ app.post<{ id: number }, {}, Like>("/resources/:id/likes", async (req, res) => {
   await client.query(
     "INSERT INTO likes (author_id, resource_id, liked) VALUES ($1, $2, $3)",
     [author_id, id, liked]
+
   );
   res.status(200).json({
     status: "success",
