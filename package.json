@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node dist/server.js",
-    "start:dev": "LOCAL=true nodemon server.ts",
+    "start:dev": "LOCAL=true nodemon src/server.ts",
     "start:devh": "nodemon src/server.ts",
     "test": "jest src/server.test.ts",
     "test:watch": "jest --watch",
@@ -23,6 +23,7 @@
     "eslint": "^8.6.0",
     "express": "^4.17.1",
     "jest": "^27.4.5",
+    "nodemon": "^2.0.15",
     "pg": "^8.5.1",
     "prettier": "^2.5.1",
     "supertest": "^6.1.6",
