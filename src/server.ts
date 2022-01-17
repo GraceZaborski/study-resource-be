@@ -56,6 +56,7 @@ export interface Resource {
   type: string;
   recommended: string;
   url: string;
+  week: string;
 }
 
 // <----------------------------------- /resources -------------------------------------------->
@@ -263,11 +264,12 @@ app.post<{ id: number }, {}, { tag_ids: number[] }>( // edit documentation
 //add a new resource
 app.post<{}, {}, Resource>("/resources", async (req, res) => {
   // maybe include option to attach tags in the same endpoint?
-  const { author_id, title, description, type, recommended, url } = req.body;
+  const { author_id, title, description, type, recommended, url, week } =
+    req.body;
   const dbres = await client.query(
-    "INSERT INTO resources (author_id, title, description, type, recommended, url) VALUES\
-    ($1, $2, $3,$4, $5, $6) RETURNING *",
-    [author_id, title, description, type, recommended, url]
+    "INSERT INTO resources (author_id, title, description, type, recommended, url, week) VALUES\
+    ($1, $2, $3,$4, $5, $6, $7) RETURNING *",
+    [author_id, title, description, type, recommended, url, week]
   );
   res.status(201).json({
     status: "success",
