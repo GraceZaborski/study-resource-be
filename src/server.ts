@@ -144,7 +144,7 @@ app.get<{ id: number }>("/resources/:id/comments", async (req, res) => {
 });
 
 // get's like/dislike status for a specific user on a specific resource
-app.get<{ id: number }, {}, { author_id: number }>(
+app.get<{ id: number }, {}, { author_id: number }>( // add documentation
   "/resources/:id/likes",
   async (req, res) => {
     const { id } = req.params;
@@ -153,11 +153,19 @@ app.get<{ id: number }, {}, { author_id: number }>(
       "SELECT * FROM likes WHERE author_id = $1 AND resource_id = $2;",
       [author_id, id]
     );
-    res.status(200).json({
-      status: "success",
-      message: `Got like/dislike status for user ${author_id} of resource ${id}`,
-      data: dbres.rows[0].liked,
-    });
+    if (dbres.rowCount !== 0) {
+      res.status(200).json({
+        status: "success",
+        message: `Got like/dislike status for user ${author_id} of resource ${id}`,
+        data: dbres.rows[0].liked,
+      });
+    } else {
+      res.status(200).json({
+        status: "not found",
+        message: `Got like/dislike status for user ${author_id} of resource ${id}`,
+        data: null,
+      });
+    }
   }
 );
 
@@ -254,6 +262,7 @@ app.post<{ id: number }, {}, { tag_ids: number[] }>( // edit documentation
 
 //add a new resource
 app.post<{}, {}, Resource>("/resources", async (req, res) => {
+  // maybe include option to attach tags in the same endpoint?
   const { author_id, title, description, type, recommended, url } = req.body;
   const dbres = await client.query(
     "INSERT INTO resources (author_id, title, description, type, recommended, url) VALUES\
@@ -445,6 +454,7 @@ app.post<{}, {}, { tags: Tag[] }>("/tags", async (req, res) => {
 
 // get the study list resources for an associated user
 app.get<{ user_id: number }>("/study_list/:user_id", async (req, res) => {
+  // add tags to this endpoint
   const { user_id } = req.params;
   const dbres = await client.query(
     "SELECT r.*, u.name, u.is_faculty, CAST(COALESCE(l.like_count, 0) AS INT) likes,\
