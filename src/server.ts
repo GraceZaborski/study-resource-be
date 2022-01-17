@@ -196,7 +196,6 @@ app.post<{ id: number }, {}, Like>("/resources/:id/likes", async (req, res) => {
   await client.query(
     "INSERT INTO likes (author_id, resource_id, liked) VALUES ($1, $2, $3)",
     [author_id, id, liked]
-
   );
   res.status(200).json({
     status: "success",
