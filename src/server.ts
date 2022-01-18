@@ -168,8 +168,32 @@ app.get<{ id: number; author_id: number }>( // add documentation
   }
 );
 
-//add a new comment associated with a resource
+// get add to study list status
+app.get<{ id: number; user_id: number }>( // add documentation
+  "/resources/:id/study_list/:user_id",
+  async (req, res) => {
+    const { id, user_id } = req.params;
+    const dbres = await client.query(
+      "SELECT * FROM study_list WHERE user_id = $1 AND resource_id = $2;",
+      [user_id, id]
+    );
+    if (dbres.rowCount !== 0) {
+      res.status(200).json({
+        status: "success",
+        message: `Got study_list status for user ${user_id} of resource ${id}`,
+        data: true,
+      });
+    } else {
+      res.status(200).json({
+        status: "not found",
+        message: `Got study_list status for user ${user_id} of resource ${id}`,
+        data: false,
+      });
+    }
+  }
+);
 
+//add a new comment associated with a resource
 app.post<{ id: number }, {}, Comment>(
   "/resources/:id/comments",
   async (req, res) => {
