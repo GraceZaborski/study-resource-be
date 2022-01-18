@@ -145,10 +145,11 @@ app.get<{ id: number }>("/resources/:id/comments", async (req, res) => {
 });
 
 // get's like/dislike status for a specific user on a specific resource
-app.get<{ id: number; author_id: number }>( // add documentation
-  "/resources/:id/likes/:author_id",
+app.get<{ id: number }, {}, { author_id: number }>( // add documentation
+  "/resources/:id/likes",
   async (req, res) => {
-    const { id, author_id } = req.params;
+    const { id } = req.params;
+    const { author_id } = req.body;
     const dbres = await client.query(
       "SELECT * FROM likes WHERE author_id = $1 AND resource_id = $2;",
       [author_id, id]
