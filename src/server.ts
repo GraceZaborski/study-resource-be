@@ -35,7 +35,6 @@ export interface Comment {
 }
 
 export interface Like {
-  author_id: number;
   liked: boolean;
 }
 
@@ -145,11 +144,10 @@ app.get<{ id: number }>("/resources/:id/comments", async (req, res) => {
 });
 
 // get's like/dislike status for a specific user on a specific resource
-app.get<{ id: number }, {}, { author_id: number }>( // add documentation
-  "/resources/:id/likes",
+app.get<{ id: number; author_id: number }>( // add documentation
+  "/resources/:id/likes/:author_id",
   async (req, res) => {
-    const { id } = req.params;
-    const { author_id } = req.body;
+    const { id, author_id } = req.params;
     const dbres = await client.query(
       "SELECT * FROM likes WHERE author_id = $1 AND resource_id = $2;",
       [author_id, id]
@@ -190,22 +188,25 @@ app.post<{ id: number }, {}, Comment>(
 );
 
 // add an entry into likes table to like or dislike
-app.post<{ id: number }, {}, Like>("/resources/:id/likes", async (req, res) => {
-  const { id } = req.params;
-  const { author_id, liked } = req.body;
-  await client.query(
-    "INSERT INTO likes (author_id, resource_id, liked) VALUES ($1, $2, $3)",
-    [author_id, id, liked]
-  );
-  res.status(200).json({
-    status: "success",
-    message: `${liked ? "Liked" : "Disliked"} resource with id ${id}`,
-    data: {
-      resource_id: id,
-      author_id,
-    },
-  });
-});
+app.post<{ id: number; author_id: number }, {}, Like>(
+  "/resources/:id/likes/:author_id",
+  async (req, res) => {
+    const { id, author_id } = req.params;
+    const { liked } = req.body;
+    await client.query(
+      "INSERT INTO likes (author_id, resource_id, liked) VALUES ($1, $2, $3)",
+      [author_id, id, liked]
+    );
+    res.status(200).json({
+      status: "success",
+      message: `${liked ? "Liked" : "Disliked"} resource with id ${id}`,
+      data: {
+        resource_id: id,
+        author_id,
+      },
+    });
+  }
+);
 
 // associates existing tags to a resource --> need to deal with duplicate tags
 app.post<{ id: number }, {}, { tag_ids: number[] }>( // edit documentation
@@ -280,11 +281,10 @@ app.post<{}, {}, Resource>("/resources", async (req, res) => {
 });
 
 // delete an entry in like table to unlike and undislike
-app.delete<{ id: number }, {}, { author_id: number }>(
-  "/resources/:id/likes",
+app.delete<{ id: number; author_id: number }>(
+  "/resources/:id/likes/:author_id",
   async (req, res) => {
-    const { id } = req.params;
-    const { author_id } = req.body;
+    const { id, author_id } = req.params;
     const dbres = await client.query(
       "DELETE FROM likes WHERE author_id = $1 AND resource_id = $2 RETURNING *;",
       [author_id, id]
@@ -467,10 +467,21 @@ app.get<{ user_id: number }>("/study_list/:user_id", async (req, res) => {
     ORDER BY date_added DESC;",
     [user_id]
   );
+
+  const response = [];
+  for (const resource of dbres.rows) {
+    const tagsDbres = await client.query(
+      "SELECT t.* FROM tags t JOIN resource_tags rt ON t.tag_id = rt.tag_id WHERE rt.resource_id = $1",
+      [resource.id]
+    );
+    // const tagsOfResource = tagsDbres.rows.map((tagObj) => tagObj.tag_name); // if you only want the tag name, not the tag object
+    response.push({ ...resource, tags: tagsDbres.rows });
+  }
+
   res.status(200).json({
     status: "success",
     message: `Retrieved all study list resources for user ${user_id}`,
-    data: dbres.rows,
+    data: response,
   });
 });
 

@@ -159,6 +159,14 @@ VALUES
 (10, 1, true),
 (14, 1, false);
 
+INSERT INTO study_list (user_id, resource_id)
+VALUES
+(1, 3),
+(1, 4),
+(1, 5),
+(1, 6),
+(1, 7);
+
 -- -- dummy data
 -- INSERT INTO users VALUES 
 -- (DEFAULT, 'Barack Obama', true);
