@@ -565,32 +565,34 @@ app.put<{ user_id: number }, {}, StudyList>(
 //   });
 // });
 
-//add a resource to the study list of a specific user
-// app.delete<{}, {}, StudyList>("/study_list/delete", async (req, res) => {
-//   //endpoint naming conventions
-//   const { user_id, resource_id } = req.body;
-//   const resourceExists = await client.query(
-//     "SELECT * FROM study_list WHERE user_id = $1 and resource_id = $2",
-//     [user_id, resource_id]
-//   );
-//   if (resourceExists.rowCount !== 0) {
-//     const dbres = await client.query(
-//       "DELETE FROM study_list WHERE user_id = $1 and resource_id = $2 RETURNING *",
-//       [user_id, resource_id]
-//     );
-//     res.status(200).json({
-//       status: "success",
-//       message: "Deleted a resource from study list",
-//       data: dbres.rows,
-//     });
-//   } else {
-//     res.status(409).json({
-//       //or 500?
-//       status: "fail",
-//       message: "There was no resource to delete",
-//     });
-//   }
-// });
+// delete a resource to the study list of a specific user
+app.delete<{ user_id: number; resource_id: number }>(
+  "/study_list/:user_id/:resource_id",
+  async (req, res) => {
+    //endpoint naming conventions
+    const { user_id, resource_id } = req.params;
+    const resourceExists = await client.query(
+      "SELECT * FROM study_list WHERE user_id = $1 and resource_id = $2",
+      [user_id, resource_id]
+    );
+    if (resourceExists.rowCount !== 0) {
+      const dbres = await client.query(
+        "DELETE FROM study_list WHERE user_id = $1 and resource_id = $2 RETURNING *",
+        [user_id, resource_id]
+      );
+      res.status(200).json({
+        status: "success",
+        message: "Deleted a resource from study list",
+        data: dbres.rows,
+      });
+    } else {
+      res.status(409).json({
+        status: "fail",
+        message: "There was no resource to delete",
+      });
+    }
+  }
+);
 
 //Start the server on the given port
 const port = process.env.PORT;
