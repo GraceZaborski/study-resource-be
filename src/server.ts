@@ -292,16 +292,28 @@ app.post<{}, {}, Resource>("/resources", async (req, res) => {
   // maybe include option to attach tags in the same endpoint?
   const { author_id, title, description, type, recommended, url, week } =
     req.body;
-  const dbres = await client.query(
-    "INSERT INTO resources (author_id, title, description, type, recommended, url, week) VALUES\
-    ($1, $2, $3,$4, $5, $6, $7) RETURNING *",
-    [author_id, title, description, type, recommended, url, week]
+  const dbresDuplicateCheck = await client.query(
+    "SELECT * from resources where url = $1",
+    [url]
   );
-  res.status(201).json({
-    status: "success",
-    message: "Added a new resource",
-    data: dbres.rows[0],
-  });
+  if (dbresDuplicateCheck.rowCount === 0) {
+    const dbres = await client.query(
+      "INSERT INTO resources (author_id, title, description, type, recommended, url, week) VALUES\
+    ($1, $2, $3,$4, $5, $6, $7) RETURNING *",
+      [author_id, title, description, type, recommended, url, week]
+    );
+    res.status(201).json({
+      status: "success",
+      message: "Added a new resource",
+      data: dbres.rows[0],
+    });
+  } else {
+    res.status(400).json({
+      status: "error",
+      message: "Trying to add duplicate resource",
+      data: dbresDuplicateCheck.rows[0],
+    });
+  }
 });
 
 // delete an entry in like table to unlike and undislike
